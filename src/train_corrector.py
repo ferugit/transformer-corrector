@@ -117,11 +117,19 @@ args = Seq2SeqTrainingArguments(
     per_device_train_batch_size=batch_size,
     per_device_eval_batch_size=batch_size,
     weight_decay=0.01,
-    save_total_limit=3,
+    save_total_limit=2,
     num_train_epochs=epochs,
     predict_with_generate=True,
     fp16=True,
     push_to_hub=False,
+    lr_scheduler_type="cosine_with_restarts",
+    logging_dir="logs/",
+    metric_for_best_model="bleu",
+    greater_is_better=True,
+    save_strategy="epoch",
+    load_best_model_at_end=True,
+    report_to="tensorboard"
+
 )
 
 data_collator = DataCollatorForSeq2Seq(tokenizer, model=model) 
