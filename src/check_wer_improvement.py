@@ -12,7 +12,7 @@ wer_metric = sb.utils.metric_stats.ErrorRateStats()
 cer_metric = sb.utils.metric_stats.ErrorRateStats(split_tokens=True)
 
 # data
-test_csv_path = "/home/fernandol/transformer-translator-pytorch/data/tsv/test.csv"
+test_csv_path = "data/tsv/test.csv"
 test_df = pd.read_csv(test_csv_path, header=0)
 
 asr_hypothesis_list = test_df["src"].tolist()
@@ -29,7 +29,9 @@ print(f"CER= {cer}%")
 print(f"WER= {wer}%")
 
 # Load corrector
-translator = pipeline("translation", model="corrector")
+model_checkpoint = 'corrector' # last checkpoint
+#model_checkpoint = 'models/opus-mt-ca-es-finetuned-corrector/checkpoint-8000' # last checkpoint
+translator = pipeline("translation", model=model_checkpoint)
 
 for ids in range(len(reference_list)):
     corrected_sentence = translator(asr_hypothesis_list[ids])[0]['translation_text']

@@ -90,9 +90,9 @@ model_checkpoint = "Helsinki-NLP/opus-mt-ca-es"
 
 # Load train data
 raw_datasets = load_dataset('csv', data_files={
-    'train': '/home/fernandol/transformer-translator-pytorch/data/tsv/train.csv',
-    'valid': '/home/fernandol/transformer-translator-pytorch/data/tsv/valid.csv',
-    'test': '/home/fernandol/transformer-translator-pytorch/data/tsv/test.csv'})
+    'train': 'data/tsv/train.csv',
+    'valid': 'data/tsv/valid.csv',
+    'test': 'data/tsv/test.csv'})
 
 # Metric
 metric = load_metric("sacrebleu")
