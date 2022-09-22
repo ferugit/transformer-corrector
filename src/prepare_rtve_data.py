@@ -247,6 +247,12 @@ def main():
         src_train_lines += mistaken_list
         trg_train_lines += clean_list
 
+    # Shuffle train lists
+    temp = list(zip(src_train_lines, trg_train_lines))
+    random.shuffle(temp)
+    src_train_lines, trg_train_lines = zip(*temp)
+    src_train_lines, trg_train_lines = list(src_train_lines), list(trg_train_lines)
+
     # Sore data as txt
     store_data(os.path.join(dst, 'src', 'train.txt'), src_train_lines)
     store_data(os.path.join(dst, 'src', 'valid.txt'), src_valid_lines)
