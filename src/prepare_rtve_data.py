@@ -158,7 +158,7 @@ def create_mistakes(clean_list):
         # Split in words
         original = x.strip()
         
-        if len(original) > 0:
+        if len(original) > 2:
             mistaken = ''
 
             # Split in words
@@ -168,14 +168,14 @@ def create_mistakes(clean_list):
                     
                     if random.random() < char_typo_prob:
                         w = w.strip()
-                        w = repeated_char(w)
+                        w = typo_mistake(w)
                     
-                    if random.random() < char_missp_prob:
+                    elif random.random() < char_missp_prob:
                         w = spelling_mistake(' ' + w + ' ')
                         w = w.strip()
                     
-                    if random.random() < char_rep_prob:
-                        w = typo_mistake(w)
+                    elif random.random() < char_rep_prob:
+                        w = repeated_char(w)
                         w = w.strip()
 
                     mistaken += w + ' '
@@ -200,7 +200,7 @@ def create_mistakes(clean_list):
 def main():
 
     dst = 'data/'
-    n_augments = 3
+    n_augments = 1
 
     tsv_path = 'data/source/hypothesis.tsv'
     df = pd.read_csv(tsv_path, header=0, sep='\t')

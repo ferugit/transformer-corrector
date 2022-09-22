@@ -59,21 +59,24 @@ def compute_metrics(eval_preds):
 
 
 def preprocess_function(dataset):
-    inputs = [ex for ex in dataset["src"]]
-    targets = [ex for ex in dataset["trg"]]
-    model_inputs = tokenizer(inputs, max_length=max_input_length, truncation=True)
+    try:
+        inputs = [ex for ex in dataset["src"]]
+        targets = [ex for ex in dataset["trg"]]
+        model_inputs = tokenizer(inputs, max_length=max_input_length, truncation=True)
 
-    # Setup the tokenizer for targets
-    with tokenizer.as_target_tokenizer():
-        labels = tokenizer(targets, max_length=max_target_length, truncation=True)
+        # Setup the tokenizer for targets
+        with tokenizer.as_target_tokenizer():
+            labels = tokenizer(targets, max_length=max_target_length, truncation=True)
 
-    model_inputs["labels"] = labels["input_ids"]
+        model_inputs["labels"] = labels["input_ids"]
+    except:
+        print(targets)
     return model_inputs
 
 
 # Timestamp
 date = datetime.datetime.now()
-timestamp = str(date).replace(" ", "").replace("-", "").replace(":", "").split(".")[0]
+timestamp = str(date).replace(" ", "_").replace("-", "").replace(":", "").split(".")[0]
 
 # Constants
 max_input_length = 200
