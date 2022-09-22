@@ -1,8 +1,10 @@
+import os
+import random
+import datetime
+import pandas as pd
+
 import torch
 import numpy as np
-
-import random
-import pandas as pd
 
 import datasets
 from datasets import load_dataset, load_metric
@@ -31,7 +33,6 @@ def show_random_elements(dataset, num_examples=5):
 def postprocess_text(preds, labels):
     preds = [pred.strip() for pred in preds]
     labels = [[label.strip()] for label in labels]
-
     return preds, labels
 
 
@@ -70,6 +71,9 @@ def preprocess_function(dataset):
     return model_inputs
 
 
+# Timestamp
+date = datetime.datetime.now()
+timestamp = str(date).replace(" ", "").replace("-", "").replace(":", "").split(".")[0]
 
 # Constants
 max_input_length = 200
@@ -80,7 +84,7 @@ target_lang = "sp"
 # Training stage
 batch_size = 60
 epochs = 200
-lr = 2e-5
+lr = 1e-4
 
 # CHeckpoint
 #model_checkpoint = "Helsinki-NLP/opus-mt-es-es" #remote
@@ -90,9 +94,9 @@ model_checkpoint = "Helsinki-NLP/opus-mt-ca-es"
 
 # Load train data
 raw_datasets = load_dataset('csv', data_files={
-    'train': 'data/tsv/train.csv',
-    'valid': 'data/tsv/valid.csv',
-    'test': 'data/tsv/test.csv'})
+    'train': 'data/csv/train.csv',
+    'valid': 'data/csv/valid.csv',
+    'test': 'data/csv/test.csv'})
 
 # Metric
 metric = load_metric("sacrebleu")
@@ -123,7 +127,7 @@ args = Seq2SeqTrainingArguments(
     fp16=True,
     push_to_hub=False,
     lr_scheduler_type="cosine_with_restarts",
-    logging_dir="logs/",
+    logging_dir="logs/" + timestamp,
     metric_for_best_model="bleu",
     greater_is_better=True,
     save_strategy="epoch",
