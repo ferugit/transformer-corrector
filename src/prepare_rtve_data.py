@@ -1,12 +1,52 @@
 import os
+import re
 import random
 import pandas as pd
 from tqdm import tqdm
 
+random.seed(1234)
 
 characters = ['E', 'A', 'O', 'S', 'N', 'R', 'I', 'L', 'D', 'T', 'C', 'U', 'M',
              'P', 'B', 'G', 'V', 'F', 'Ó', 'Y', 'H', 'Í', 'Á', 'J', 'Q', 'Z',
-              'Ñ', 'X', 'Ú', 'K', 'W', 'É', 'Ü']
+              'Ñ', 'X', 'Ú', 'K', 'W', 'É', 'Ü' ,' ']
+
+
+def unicode_normalisation(text):
+
+    try:
+        text = unicode(text, "utf-8")
+    except NameError:  # unicode is a default on python 3
+        pass
+    return str(text)
+
+
+def normalize_text(words):
+    words = unicode_normalisation(words)
+
+    # !! Language specific cleaning !!
+    # Important: feel free to specify the text normalization
+    # corresponding to your alphabet.
+
+    words = re.sub(
+        "[^’'A-Za-z0-9À-ÖØ-öø-ÿЀ-ӿéæœâçèàûî]+", " ", words
+    ).upper()
+    
+    # Spanish specific cleaning
+    words = words.replace("\"", " ")
+    words = words.replace("'", " ")
+    words = words.replace("’", " ")
+
+    # catalan = "ÏÀÒ"
+    words = words.replace("Ï", "I")
+    words = words.replace("À", "A")
+    words = words.replace("Ò", "O")
+    
+    # Remove multiple spaces
+    words = re.sub(" +", " ", words)
+
+    # Remove spaces at the beginning and the end of the sentence
+    words = words.lstrip().rstrip()
+    return words
 
 
 def store_data(path, lines):
@@ -77,43 +117,43 @@ def spelling_mistake(word):
     # Defining all the misspellings. If there is more than one possible misspelling for a given correct spelling, it
     # must be introduced as a list
     misspelling_dict = {
-        'u': 'w',
-        'w': 'u',
+        'U': 'W',
+        'W': 'U',
         #'oo': 'u',
-        'y': 'i',
-        'i': 'y',
-        'b': 'v',
-        'v': 'b',
-        'ca': 'ka',
-        'ka': 'ca',
-        'ce': 'se',
-        'se': 'ce',
-        'ci': 'si',
-        'si': 'ci',
-        'co': 'ko',
-        'ko': 'cu',
-        'cu': 'ku',
-        'ku': 'cu',
+        'Y': 'I',
+        'I': 'Y',
+        'B': 'V',
+        'V': 'B',
+        'CA': 'KA',
+        'KA': 'CA',
+        'CE': 'SE',
+        'SE': 'CE',
+        'CI': 'SI',
+        'SI': 'CI',
+        'CO': 'KO',
+        'KO': 'CU',
+        'CU': 'KU',
+        'KU': 'CU',
         #'ee': 'i',
-        'll': 'y',
-        ' a': ' ha',
-        ' ha': ' a',
-        ' o': ' ho',
-        ' ho': ' o',
-        ' i': ' hi', 
-        ' hi': ' i',
-        'ge': 'je',
-        'je': 'ge',
-        'gi': 'ji',
-        'ji': 'gi',
-        'ch': 'x',
-        'x':'ch',
-        ' i': ' hi',
-        ' hi': ' i',
-        'qui': 'ki',
-        'ki': 'qui',
-        'que': ['ke', 'k', 'q'],
-        'ke': 'que'
+        'LL': 'Y',
+        ' A': ' HA',
+        ' HA': ' A',
+        ' O': ' HO',
+        ' HO': ' O',
+        ' I': ' HI', 
+        ' HI': ' I',
+        'GE': 'JE',
+        'JE': 'GE',
+        'GI': 'JI',
+        'JI': 'GI',
+        'CH': 'X',
+        'X':'CH',
+        ' I': ' HI',
+        ' HI': ' I',
+        'QUI': 'KI',
+        'KI': 'QUI',
+        'QUE': ['KE', 'K', 'Q'],
+        'KE': 'QUE'
     }
 
     possible_missp = []
@@ -150,21 +190,21 @@ def get_random_char():
 
 def create_mistakes(clean_list):
     mistaken_list = []
-    char_typo_prob = 1/4
-    char_missp_prob = 1/8
+    char_typo_prob = 1/5
+    char_missp_prob = 1/9
     char_rep_prob = 1/125
 
     for idx, x in tqdm(enumerate(clean_list)):
         # Split in words
         original = x.strip()
         
-        if len(original) > 2:
+        if len(original) > 1:
             mistaken = ''
 
             # Split in words
             for w in original.split(' '):
                 
-                if len(w) > 0:
+                if len(w) > 3:
                     
                     if random.random() < char_typo_prob:
                         w = w.strip()
@@ -185,8 +225,8 @@ def create_mistakes(clean_list):
 
             mistaken = mistaken[:-1]
             
-            if mistaken.strip() != '': 
-                mistaken_list.append(mistaken)
+            if mistaken.strip() != '' and mistaken: 
+                mistaken_list.append(mistaken.upper())
 
         else:
             mistaken_list.append(original)
@@ -229,18 +269,28 @@ def main():
     trg_valid_lines = trg_lines[first_split_idx:second_split_idx]
     trg_test_lines = trg_lines[second_split_idx:]
 
+    # REAL DATA: Append data from checkpoints
+    print("Reading real data...")
+    tsv_path_ckpt4 = 'data/source/CKPT+2022-09-11+20-25-21+00_hypothesis.tsv'
+    ckpt4_df = pd.read_csv(tsv_path_ckpt4, header=0, sep='\t')
+    ckpt4_df = ckpt4_df[~ckpt4_df["Reference"].isin(trg_lines)]
+    ckpt4_df['Reference'] = ckpt4_df['Reference'].apply(lambda x: normalize_text(x))
+    ckpt4_df['Hypothesis'] = ckpt4_df['Hypothesis'].apply(lambda x: normalize_text(x))
+    src_train_lines += ckpt4_df['Hypothesis'].tolist()
+    trg_train_lines += ckpt4_df['Reference'].tolist()
+
     # Read the rest of the aligned data
     aligned_path = 'data/source/albayzin_aligned.tsv'
     aligned_df = pd.read_csv(aligned_path, header=0, sep='\t')
 
     # remove dev2 data: which contains real mistakes
     aligned_df = aligned_df[~aligned_df['Transcription'].isin(trg_lines)]
+    aligned_df['Transcription'] = aligned_df['Transcription'].apply(lambda x: normalize_text(x))
+    clean_list = list(filter(None, aligned_df['Transcription'].tolist()))
 
     # Augment with random mistakes
-
     for _ in range(n_augments):
         # From ASR tokenizer
-        clean_list = aligned_df['Transcription'].tolist()
         mistaken_list = create_mistakes(clean_list)
 
         # Append augmented data
@@ -252,6 +302,10 @@ def main():
     random.shuffle(temp)
     src_train_lines, trg_train_lines = zip(*temp)
     src_train_lines, trg_train_lines = list(src_train_lines), list(trg_train_lines)
+
+    if '' in src_train_lines or '' in trg_train_lines:
+        print("empty string found")
+        return
 
     # Sore data as txt
     store_data(os.path.join(dst, 'src', 'train.txt'), src_train_lines)

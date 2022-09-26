@@ -29,8 +29,8 @@ print(f"CER= {cer}%")
 print(f"WER= {wer}%")
 
 # Load corrector
-#model_checkpoint = 'corrector' # last checkpoint
-model_checkpoint = 'models/opus-mt-ca-es-finetuned-corrector/checkpoint-16686' # last checkpoint
+model_checkpoint = 'corrector' # last checkpoint
+#model_checkpoint = '/home/fernandol/transformer-corrector/models/opus-mt-ca-es-finetuned-corrector/checkpoint-27247' # last checkpoint
 translator = pipeline("translation", model=model_checkpoint)
 
 for ids in range(len(reference_list)):
