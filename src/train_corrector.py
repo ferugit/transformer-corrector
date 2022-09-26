@@ -70,9 +70,18 @@ def preprocess_function(dataset):
 
         model_inputs["labels"] = labels["input_ids"]
     except:
-        print(targets)
-    return model_inputs
+        try:
+            for idx in range(len(inputs)):
+                text = inputs[idx]
+                target = targets[idx]
+                tokenizer(text, max_length=max_input_length, truncation=True)
 
+        except:
+            print(text)
+            print(target)
+        
+    return model_inputs
+    
 
 # Timestamp
 date = datetime.datetime.now()
@@ -86,13 +95,12 @@ target_lang = "sp"
 
 # Training stage
 batch_size = 60
-epochs = 200
+epochs = 20
 lr = 1e-4
 
 # CHeckpoint
-#model_checkpoint = "Helsinki-NLP/opus-mt-es-es" #remote
-
-model_checkpoint = "Helsinki-NLP/opus-mt-ca-es"
+#model_checkpoint = "Helsinki-NLP/opus-mt-es-es" # spanish to spanish
+model_checkpoint = "Helsinki-NLP/opus-mt-ca-es" # catalán to spanish
 #model_checkpoint = "corrector" #local
 
 # Load train data
@@ -116,6 +124,12 @@ print("Build model")
 model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
 
 model_name = model_checkpoint.split("/")[-1]
+
+# Scheduler
+"""
+scheduler = transformers.get_cosine_with_hard_restarts_schedule_with_warmup(
+    optimizer
+)"""
 
 args = Seq2SeqTrainingArguments(
     f"models/{model_name}-finetuned-corrector",
@@ -148,7 +162,8 @@ trainer = Seq2SeqTrainer(
     eval_dataset=tokenized_datasets["valid"],
     data_collator=data_collator,
     tokenizer=tokenizer,
-    compute_metrics=compute_metrics
+    compute_metrics=compute_metrics,
+    callbacks = [transformers.EarlyStoppingCallback(early_stopping_patience=5)]
 )
 
 trainer.train()
