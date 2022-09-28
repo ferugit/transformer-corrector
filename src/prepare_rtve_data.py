@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import random
 import pandas as pd
 from tqdm import tqdm
@@ -240,7 +241,6 @@ def create_mistakes(clean_list):
 def main():
 
     dst = 'data/'
-    n_augments = 1
 
     tsv_path = 'data/source/hypothesis.tsv'
     df = pd.read_csv(tsv_path, header=0, sep='\t')
@@ -269,15 +269,37 @@ def main():
     trg_valid_lines = trg_lines[first_split_idx:second_split_idx]
     trg_test_lines = trg_lines[second_split_idx:]
 
-    # REAL DATA: Append data from checkpoints
-    print("Reading real data...")
-    tsv_path_ckpt4 = 'data/source/CKPT+2022-09-11+20-25-21+00_hypothesis.tsv'
-    ckpt4_df = pd.read_csv(tsv_path_ckpt4, header=0, sep='\t')
-    ckpt4_df = ckpt4_df[~ckpt4_df["Reference"].isin(trg_lines)]
-    ckpt4_df['Reference'] = ckpt4_df['Reference'].apply(lambda x: normalize_text(x))
-    ckpt4_df['Hypothesis'] = ckpt4_df['Hypothesis'].apply(lambda x: normalize_text(x))
-    src_train_lines += ckpt4_df['Hypothesis'].tolist()
-    trg_train_lines += ckpt4_df['Reference'].tolist()
+    ############################################
+    # REAL DATA: Append data from checkpoints###
+    ############################################
+    ckpt_75 = True
+    ckpt_95 = False
+
+    if ckpt_75:
+        print("Reading data generated with CKPT+2022-09-11+20-25-21+00...")
+        tsv_path_ckpt4 = 'data/source/CKPT+2022-09-11+20-25-21+00_hypothesis.tsv'
+        ckpt4_df = pd.read_csv(tsv_path_ckpt4, header=0, sep='\t')
+        ckpt4_df = ckpt4_df[~ckpt4_df["Reference"].isin(trg_lines)]
+        ckpt4_df['Reference'] = ckpt4_df['Reference'].apply(lambda x: normalize_text(x))
+        ckpt4_df['Hypothesis'] = ckpt4_df['Hypothesis'].apply(lambda x: normalize_text(x))
+        src_train_lines += ckpt4_df['Hypothesis'].tolist()
+        trg_train_lines += ckpt4_df['Reference'].tolist()
+
+    if ckpt_95:
+        print("Reading data generated with CKPT+2022-09-23+21-10-47+00...")
+        tsv_path_ckpt5 = 'data/source/CKPT+2022-09-23+21-10-47+00_hypothesis.tsv'
+        ckpt5_df = pd.read_csv(tsv_path_ckpt5, header=0, sep='\t')
+        ckpt5_df = ckpt5_df[~ckpt5_df["Reference"].isin(trg_lines)]
+        ckpt5_df['Reference'] = ckpt5_df['Reference'].apply(lambda x: normalize_text(x))
+        ckpt5_df['Hypothesis'] = ckpt5_df['Hypothesis'].apply(lambda x: normalize_text(x))
+        src_train_lines += ckpt5_df['Hypothesis'].tolist()
+        trg_train_lines += ckpt5_df['Reference'].tolist()
+
+    ############################################
+    ### Augmented data: Apped generated data ###
+    ############################################
+
+    n_augments = 0
 
     # Read the rest of the aligned data
     aligned_path = 'data/source/albayzin_aligned.tsv'
@@ -290,6 +312,7 @@ def main():
 
     # Augment with random mistakes
     for _ in range(n_augments):
+        print("Generate augmented data...")
         # From ASR tokenizer
         mistaken_list = create_mistakes(clean_list)
 
@@ -316,7 +339,7 @@ def main():
     store_data(os.path.join(dst, 'trg', 'valid.txt'), trg_valid_lines)
     store_data(os.path.join(dst, 'trg', 'test.txt'), trg_test_lines)
 
-    # store as csvs
+    # Store as csvs
     train_df = pd.DataFrame({'src': src_train_lines , 'trg': trg_train_lines})
     train_df.to_csv(os.path.join(dst, 'csv', 'train.csv'), index=None)
     dev_df = pd.DataFrame({'src': src_valid_lines , 'trg': trg_valid_lines})

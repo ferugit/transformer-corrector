@@ -9,6 +9,8 @@ import numpy as np
 import datasets
 from datasets import load_dataset, load_metric
 
+import speechbrain as sb
+
 import transformers
 from transformers import AutoTokenizer
 from transformers import AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer
@@ -49,8 +51,14 @@ def compute_metrics(eval_preds):
     # Some simple post-processing
     decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
 
-    result = metric.compute(predictions=decoded_preds, references=decoded_labels)
-    result = {"bleu": result["score"]}
+    if optimization_metric == "bleu":
+        result = metric.compute(predictions=decoded_preds, references=decoded_labels)
+        result = {"bleu": result["score"]}
+    
+    elif optimization_metric == "wer":
+        for ids in range(len(decoded_preds)):
+            metric.append([ids], [decoded_preds[ids]], [decoded_labels[ids][0]])
+        result = {"wer": metric.summarize("error_rate")}
 
     prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in preds]
     result["gen_len"] = np.mean(prediction_lens)
@@ -81,7 +89,16 @@ def preprocess_function(dataset):
             print(target)
         
     return model_inputs
-    
+
+# ptimization metric
+optimization_metric = "wer" # bleu
+
+if optimization_metric == "bleu":
+    metric = load_metric("sacrebleu")
+    greater_is_better = True
+elif optimization_metric == "wer":
+    metric = sb.utils.metric_stats.ErrorRateStats()
+    greater_is_better = False
 
 # Timestamp
 date = datetime.datetime.now()
@@ -108,9 +125,6 @@ raw_datasets = load_dataset('csv', data_files={
     'train': 'data/csv/train.csv',
     'valid': 'data/csv/valid.csv',
     'test': 'data/csv/test.csv'})
-
-# Metric
-metric = load_metric("sacrebleu")
 
 # Tokenizer
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
@@ -144,9 +158,9 @@ args = Seq2SeqTrainingArguments(
     fp16=True,
     push_to_hub=False,
     lr_scheduler_type="cosine_with_restarts",
-    logging_dir="logs/" + timestamp,
-    metric_for_best_model="bleu",
-    greater_is_better=True,
+    logging_dir="logs/" + optimization_metric  + '/' + timestamp,
+    metric_for_best_model=optimization_metric,
+    greater_is_better=greater_is_better,
     save_strategy="epoch",
     load_best_model_at_end=True,
     report_to="tensorboard"
