@@ -1,4 +1,5 @@
 import os
+import shutil
 import random
 import datetime
 import pandas as pd
@@ -87,6 +88,7 @@ def preprocess_function(dataset):
         except:
             print(text)
             print(target)
+            raise Exception("Bad input format.")
         
     return model_inputs
 
@@ -181,6 +183,9 @@ trainer = Seq2SeqTrainer(
 )
 
 trainer.train()
+
+# copy info json
+shutil.copyfile("data/dataset.json", "logs/" + optimization_metric  + '/' + timestamp + "/dataset.json")
 
 trainer.save_model("corrector")
 

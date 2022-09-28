@@ -5,6 +5,9 @@ import random
 import pandas as pd
 from tqdm import tqdm
 
+from reporter import Reporter
+
+# Set seed
 random.seed(1234)
 
 characters = ['E', 'A', 'O', 'S', 'N', 'R', 'I', 'L', 'D', 'T', 'C', 'U', 'M',
@@ -195,14 +198,27 @@ def create_mistakes(clean_list):
     char_missp_prob = 1/9
     char_rep_prob = 1/125
 
+    word_deletion_prob = 89348/519779 # from errors
+
     for idx, x in tqdm(enumerate(clean_list)):
         # Split in words
         original = x.strip()
+
+        # deletion: remove word prob
+        if (len(original.split(' ')) > 2) and (random.random() < word_deletion_prob):
+            words = original.split(' ')
+            remove_idx = random.randint(0, len(words) - 1)
+            words = words[:remove_idx] + words[remove_idx+1:]
+            mistaken = " ".join(words)
+
+            if mistaken.strip() != '' and mistaken:
+                mistaken_list.append(mistaken.upper())
         
-        if len(original) > 1:
+        # char mistakes
+        elif len(original) > 2:
             mistaken = ''
 
-            # Split in words
+            # Split in words 
             for w in original.split(' '):
                 
                 if len(w) > 3:
@@ -226,13 +242,15 @@ def create_mistakes(clean_list):
 
             mistaken = mistaken[:-1]
             
-            if mistaken.strip() != '' and mistaken: 
-                mistaken_list.append(mistaken.upper())
+            if mistaken.strip() != '':
+                mistaken_list.append(mistaken)
 
         else:
             mistaken_list.append(original)
 
     if len(clean_list) != len(mistaken_list):
+        print(len(clean_list))
+        print(len(mistaken_list))
         raise Exception("Something strange happend while creating mistakes.")
 
     return mistaken_list 
@@ -241,6 +259,9 @@ def create_mistakes(clean_list):
 def main():
 
     dst = 'data/'
+
+    # Reporter
+    reporter = Reporter(dst + "dataset.json")
 
     tsv_path = 'data/source/hypothesis.tsv'
     df = pd.read_csv(tsv_path, header=0, sep='\t')
@@ -273,12 +294,13 @@ def main():
     # REAL DATA: Append data from checkpoints###
     ############################################
     ckpt_75 = True
-    ckpt_95 = False
+    ckpt_95 = True
 
     if ckpt_75:
         print("Reading data generated with CKPT+2022-09-11+20-25-21+00...")
         tsv_path_ckpt4 = 'data/source/CKPT+2022-09-11+20-25-21+00_hypothesis.tsv'
         ckpt4_df = pd.read_csv(tsv_path_ckpt4, header=0, sep='\t')
+        ckpt4_df = ckpt4_df.dropna() # drop nans
         ckpt4_df = ckpt4_df[~ckpt4_df["Reference"].isin(trg_lines)]
         ckpt4_df['Reference'] = ckpt4_df['Reference'].apply(lambda x: normalize_text(x))
         ckpt4_df['Hypothesis'] = ckpt4_df['Hypothesis'].apply(lambda x: normalize_text(x))
@@ -289,6 +311,7 @@ def main():
         print("Reading data generated with CKPT+2022-09-23+21-10-47+00...")
         tsv_path_ckpt5 = 'data/source/CKPT+2022-09-23+21-10-47+00_hypothesis.tsv'
         ckpt5_df = pd.read_csv(tsv_path_ckpt5, header=0, sep='\t')
+        ckpt5_df = ckpt5_df.dropna() # drop nans
         ckpt5_df = ckpt5_df[~ckpt5_df["Reference"].isin(trg_lines)]
         ckpt5_df['Reference'] = ckpt5_df['Reference'].apply(lambda x: normalize_text(x))
         ckpt5_df['Hypothesis'] = ckpt5_df['Hypothesis'].apply(lambda x: normalize_text(x))
@@ -299,14 +322,16 @@ def main():
     ### Augmented data: Apped generated data ###
     ############################################
 
-    n_augments = 0
+    n_augments = 1
 
     # Read the rest of the aligned data
     aligned_path = 'data/source/albayzin_aligned.tsv'
     aligned_df = pd.read_csv(aligned_path, header=0, sep='\t')
+    aligned_df = aligned_df.dropna() # drop nans
 
     # remove dev2 data: which contains real mistakes
     aligned_df = aligned_df[~aligned_df['Transcription'].isin(trg_lines)]
+    aligned_df = aligned_df[~aligned_df['Transcription'].isin(["NAN"])] # remove nans
     aligned_df['Transcription'] = aligned_df['Transcription'].apply(lambda x: normalize_text(x))
     clean_list = list(filter(None, aligned_df['Transcription'].tolist()))
 
@@ -319,6 +344,37 @@ def main():
         # Append augmented data
         src_train_lines += mistaken_list
         trg_train_lines += clean_list
+
+    # used data
+    used_data = {
+        "ckpt_75": ckpt_75,
+        "ckpt_95": ckpt_75,
+        "augmented": True if n_augments > 0 else False,
+        }
+    value_counts = {
+        "n_sentences": {
+            "train": len(src_train_lines),
+            "dev": len(src_valid_lines),
+            "test": len(src_test_lines),
+        }
+    }
+
+    reporter.report("used_data", used_data)
+    reporter.report("data_quantity", value_counts)
+
+    ######################################
+    ######## Post-process and save #######
+    ######################################
+
+    # lower case source
+    src_train_lines = [each_string.lower() for each_string in src_train_lines]
+    src_valid_lines = [each_string.lower() for each_string in src_valid_lines]
+    src_test_lines = [each_string.lower() for each_string in src_test_lines]
+
+    # Lowecase target
+    trg_train_lines = [each_string.lower() for each_string in trg_train_lines]
+    trg_valid_lines = [each_string.lower() for each_string in trg_valid_lines]
+    trg_test_lines = [each_string.lower() for each_string in trg_test_lines]
 
     # Shuffle train lists
     temp = list(zip(src_train_lines, trg_train_lines))
