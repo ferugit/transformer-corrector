@@ -260,6 +260,11 @@ def main():
 
     dst = 'data/'
 
+    ckpt_0 = True
+    ckpt_75 = True
+    ckpt_95 = True
+    n_augments = 1
+
     # Reporter
     reporter = Reporter(dst + "dataset.json")
 
@@ -293,8 +298,17 @@ def main():
     ############################################
     # REAL DATA: Append data from checkpoints###
     ############################################
-    ckpt_75 = True
-    ckpt_95 = True
+
+    if ckpt_0:
+        print("Reading data generated with CKPT+2022-05-04+10-22-26+00...")
+        tsv_path_ckpt0 = 'data/source/CKPT+2022-05-04+10-22-26+00_hypothesis.tsv'
+        ckpt0_df = pd.read_csv(tsv_path_ckpt0, header=0, sep='\t')
+        ckpt0_df = ckpt0_df.dropna() # drop nans
+        ckpt0_df = ckpt0_df[~ckpt0_df["Reference"].isin(trg_lines)]
+        ckpt0_df['Reference'] = ckpt0_df['Reference'].apply(lambda x: normalize_text(x))
+        ckpt0_df['Hypothesis'] = ckpt0_df['Hypothesis'].apply(lambda x: normalize_text(x))
+        src_train_lines += ckpt0_df['Hypothesis'].tolist()
+        trg_train_lines += ckpt0_df['Reference'].tolist()
 
     if ckpt_75:
         print("Reading data generated with CKPT+2022-09-11+20-25-21+00...")
@@ -322,8 +336,6 @@ def main():
     ### Augmented data: Apped generated data ###
     ############################################
 
-    n_augments = 1
-
     # Read the rest of the aligned data
     aligned_path = 'data/source/albayzin_aligned.tsv'
     aligned_df = pd.read_csv(aligned_path, header=0, sep='\t')
@@ -347,8 +359,9 @@ def main():
 
     # used data
     used_data = {
+        "ckpt_0": ckpt_0,
         "ckpt_75": ckpt_75,
-        "ckpt_95": ckpt_75,
+        "ckpt_95": ckpt_95,
         "augmented": True if n_augments > 0 else False,
         }
     value_counts = {

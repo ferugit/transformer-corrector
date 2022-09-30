@@ -93,7 +93,7 @@ def preprocess_function(dataset):
     return model_inputs
 
 # ptimization metric
-optimization_metric = "wer" # bleu
+optimization_metric = "bleu" # bleu | wer
 
 if optimization_metric == "bleu":
     metric = load_metric("sacrebleu")
@@ -116,6 +116,7 @@ target_lang = "sp"
 batch_size = 60
 epochs = 20
 lr = 1e-4
+patience = 5
 
 # CHeckpoint
 #model_checkpoint = "Helsinki-NLP/opus-mt-es-es" # spanish to spanish
@@ -179,7 +180,7 @@ trainer = Seq2SeqTrainer(
     data_collator=data_collator,
     tokenizer=tokenizer,
     compute_metrics=compute_metrics,
-    callbacks = [transformers.EarlyStoppingCallback(early_stopping_patience=5)]
+    callbacks = [transformers.EarlyStoppingCallback(early_stopping_patience=patience)]
 )
 
 trainer.train()
@@ -187,12 +188,12 @@ trainer.train()
 # copy info json
 shutil.copyfile("data/dataset.json", "logs/" + optimization_metric  + '/' + timestamp + "/dataset.json")
 
-trainer.save_model("corrector")
-
+trainer.save_model("corrector") # save generic
+trainer.save_model("logs/" + optimization_metric  + '/' + timestamp + "/model") # save in folder
 
 # Final check
 from transformers import pipeline
 
 #translator = pipeline("translation", model="/home/fernandol/transformer-translator-pytorch/opus-mt-es-es-finetuned-wrong-sp-to-sp/checkpoint-4000")
 translator = pipeline("translation", model="corrector")
-print(translator("PERO YO ANTES ERA DE NA MANERA"))
+print(translator("PERO YO ANTES ERA DE NA MANERA".lower()))
