@@ -1,1 +1,1 @@
-python -u src/train_corrector.py
+CUDA_VISIBLE_DEVICES=2 python -u src/train_corrector.py

@@ -92,7 +92,7 @@ def preprocess_function(dataset):
         
     return model_inputs
 
-# ptimization metric
+# optimization metric
 optimization_metric = "bleu" # bleu | wer
 
 if optimization_metric == "bleu":
@@ -118,7 +118,7 @@ epochs = 20
 lr = 1e-4
 patience = 5
 
-# CHeckpoint
+# Checkpoint
 #model_checkpoint = "Helsinki-NLP/opus-mt-es-es" # spanish to spanish
 model_checkpoint = "Helsinki-NLP/opus-mt-ca-es" # catalán to spanish
 #model_checkpoint = "corrector" #local
@@ -167,7 +167,6 @@ args = Seq2SeqTrainingArguments(
     save_strategy="epoch",
     load_best_model_at_end=True,
     report_to="tensorboard"
-
 )
 
 data_collator = DataCollatorForSeq2Seq(tokenizer, model=model) 
