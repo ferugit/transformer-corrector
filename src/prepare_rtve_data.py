@@ -264,6 +264,7 @@ def main():
     ckpt_75 = True
     ckpt_95 = True
     n_augments = 1
+    noisy_hypothesis = True
 
     # Reporter
     reporter = Reporter(dst + "dataset.json")
@@ -332,9 +333,20 @@ def main():
         src_train_lines += ckpt5_df['Hypothesis'].tolist()
         trg_train_lines += ckpt5_df['Reference'].tolist()
 
-    ############################################
-    ### Augmented data: Apped generated data ###
-    ############################################
+    if noisy_hypothesis:
+        print("Reading data generated with noise...")
+        tsv_path_noisy = 'data/source/noisy_hypothesis.tsv'
+        noisy_df = pd.read_csv(tsv_path_noisy, header=0, sep='\t')
+        noisy_df = noisy_df.dropna() # drop nans
+        noisy_df = noisy_df[~noisy_df["Reference"].isin(trg_lines)]
+        noisy_df['Reference'] = noisy_df['Reference'].apply(lambda x: normalize_text(x))
+        noisy_df['Hypothesis'] = noisy_df['Hypothesis'].apply(lambda x: normalize_text(x))
+        src_train_lines += noisy_df['Hypothesis'].tolist()
+        trg_train_lines += noisy_df['Reference'].tolist()
+
+    #############################################
+    ### Augmented data: Append generated data ###
+    #############################################
 
     # Read the rest of the aligned data
     aligned_path = 'data/source/albayzin_aligned.tsv'
